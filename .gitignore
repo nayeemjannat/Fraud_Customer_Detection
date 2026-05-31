@@ -34,3 +34,5 @@ pnpm-debug.log*
 
 # Document files (as requested by user)
 *.docx
+*.txt
+*.pdf
