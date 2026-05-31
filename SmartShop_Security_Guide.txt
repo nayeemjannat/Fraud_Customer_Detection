@@ -1,0 +1,344 @@
+
+SmartShop
+Security Guide
+Production এ deploy করার আগে যা যা fix করতে হবে
+
+
+3 টি
+Critical Issues
+2 টি
+High Issues
+3 টি
+Medium Issues
+8 টি
+Total Fixes
+
+
+Security Issues — সম্পূর্ণ তালিকা
+নিচের table এ সব issues এক নজরে দেখো। পরের page এ প্রতিটির বিস্তারিত fix আছে।
+
+Issue
+Severity
+Fix
+Package
+CORS সব জায়গায় open
+Critical
+Origin whitelist করো
+cors options
+কোনো Rate Limiting নেই
+Critical
+express-rate-limit লাগাও
+express-rate-limit
+HTTP Security Headers নেই
+Critical
+Helmet middleware যোগ করো
+helmet
+Data Ownership Check নেই
+High
+Query তে shop filter দাও
+mongoose query
+Input Validation নেই
+High
+express-validator দিয়ে check করো
+express-validator
+JWT localStorage এ
+Medium
+httpOnly cookie তে রাখো
+cookie-parser
+Frontend Fraud Bypass
+Medium
+Score শুধু backend এ রাখো
+code refactor
+File Upload Validation নেই
+Medium
+File type ও size check করো
+multer filter
+
+আগে এই packages install করো
+# Backend এ যাও
+cd backend
+
+# Security packages
+npm install helmet express-rate-limit express-validator cookie-parser
+
+# .env এ নিচের line গুলো যোগ করো
+COOKIE_SECRET=another_very_long_random_secret_here
+ALLOWED_ORIGIN=https://তোমার-vercel-app.vercel.app
+
+
+Fix #1 — server.js আপডেট করো
+পুরো server.js replace করো। নিচে সব fixes একসাথে দেওয়া আছে।
+
+const express    = require('express')
+const cors       = require('cors')
+const helmet     = require('helmet')          // NEW
+const rateLimit  = require('express-rate-limit') // NEW
+const cookieParser = require('cookie-parser') // NEW
+const dotenv     = require('dotenv')
+const connectDB  = require('./config/db')
+
+dotenv.config()
+connectDB()
+
+const app = express()
+
+// 1. Helmet — HTTP security headers
+app.use(helmet())
+
+// 2. CORS — শুধু তোমার frontend URL allow করো
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGIN,
+  credentials: true,  // cookie পাঠাতে
+}))
+
+// 3. Rate Limiting — প্রতি IP থেকে 100 req/15min
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { message: 'অনেক request করা হয়েছে, একটু পরে try করো' },
+})
+app.use('/api/', limiter)
+
+// 4. Auth route এ আরও কড়া limit (brute force থেকে বাঁচতে)
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 })
+app.use('/api/auth/', authLimiter)
+
+app.use(express.json({ limit: '10kb' })) // Body size limit
+app.use(cookieParser(process.env.COOKIE_SECRET))
+
+// Routes
+app.use('/api/auth',      require('./routes/authRoutes'))
+app.use('/api/orders',    require('./routes/orderRoutes'))
+app.use('/api/customers', require('./routes/customerRoutes'))
+app.use('/api/payments',  require('./routes/paymentRoutes'))
+app.use('/api/analytics', require('./routes/analyticsRoutes'))
+
+app.get('/', (req, res) => res.json({ message: 'SmartShop API' }))
+app.use(require('./middleware/errorHandler'))
+
+const PORT = process.env.PORT || 5000
+app.listen(PORT, () => console.log('Server on port ' + PORT))
+
+Fix #2 — Data Ownership Check
+এখন যেকেউ যেকোনো order ID দিয়ে অন্যের order দেখতে পারে। প্রতিটি query তে shop filter যোগ করতে হবে।
+
+models/Order.js এ shop field যোগ করো:
+// Order schema তে এই line যোগ করো
+shop: { type: mongoose.Schema.Types.ObjectId, ref: 'Shop', required: true },
+
+controllers/orderController.js — সব query তে shop filter দাও:
+// GET /api/orders
+exports.getOrders = async (req, res, next) => {
+  try {
+    const filter = { shop: req.user.shopId }  // <-- এটা যোগ করো
+    if (req.query.status) filter.status = req.query.status
+
+    const orders = await Order.find(filter).populate('customer').sort({ createdAt: -1 })
+    res.json(orders)
+  } catch (err) { next(err) }
+}
+
+// GET /api/orders/:id — ownership check
+exports.getOrder = async (req, res, next) => {
+  try {
+    const order = await Order.findOne({
+      _id: req.params.id,
+      shop: req.user.shopId   // <-- অন্যের order দেখতে পাবে না
+    }).populate('customer')
+
+    if (!order) return res.status(404).json({ message: 'Order পাওয়া যায়নি' })
+    res.json(order)
+  } catch (err) { next(err) }
+}
+
+// POST /api/orders — shop যোগ করো
+exports.createOrder = async (req, res, next) => {
+  try {
+    // ... existing code ...
+    const order = await Order.create({
+      // ... existing fields ...
+      shop: req.user.shopId,  // <-- এটা যোগ করো
+    })
+    // ...
+  } catch (err) { next(err) }
+}
+
+একই কাজ customerController.js, paymentController.js, analyticsController.js তেও করতে হবে।
+
+
+Fix #3 — Input Validation
+নতুন order তৈরির সময় কেউ ভুল data দিলে সেটা block করতে হবে।
+
+routes/orderRoutes.js আপডেট করো:
+const { body, validationResult } = require('express-validator')
+
+// Validation rules
+const orderValidation = [
+  body('customerName').trim().notEmpty().withMessage('নাম দিতে হবে'),
+  body('phone')
+    .trim()
+    .matches(/^01[3-9][0-9]{8}$/)
+    .withMessage('সঠিক বাংলাদেশি নম্বর দাও'),
+  body('totalAmount')
+    .isFloat({ min: 1 })
+    .withMessage('Amount অবশ্যই positive হতে হবে'),
+  body('paymentMethod')
+    .isIn(['COD', 'bKash', 'Nagad', 'Rocket', 'Partial'])
+    .withMessage('সঠিক payment method দাও'),
+]
+
+// Middleware: validation error check করে
+function validate(req, res, next) {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() })
+  }
+  next()
+}
+
+// Route এ validation যোগ করো
+router.post('/', protect, orderValidation, validate, createOrder)
+
+Fix #4 — JWT httpOnly Cookie
+JWT token localStorage এ রাখলে XSS attack এ চুরি যেতে পারে। httpOnly cookie অনেক বেশি safe।
+
+controllers/authController.js — token cookie তে পাঠাও:
+// Login এর response এ token cookie তে পাঠাও
+function sendToken(res, user, statusCode) {
+  const token = jwt.sign({ id: user._id, shopId: user.shopId }, process.env.JWT_SECRET, {
+    expiresIn: '30d'
+  })
+
+  res.cookie('token', token, {
+    httpOnly: true,    // JS দিয়ে access করা যাবে না
+    secure: process.env.NODE_ENV === 'production',  // HTTPS only
+    sameSite: 'strict',
+    maxAge: 30 * 24 * 60 * 60 * 1000,  // 30 days
+  })
+
+  res.status(statusCode).json({
+    user: { id: user._id, name: user.name, email: user.email }
+    // token আর response body তে পাঠাবে না
+  })
+}
+
+middleware/authMiddleware.js — cookie থেকে token নাও:
+function protect(req, res, next) {
+  // Cookie থেকে নাও (httpOnly)
+  const token = req.cookies.token
+
+  // Fallback: পুরনো Bearer token এখনো support করো
+  || (req.headers.authorization?.startsWith('Bearer ')
+    ? req.headers.authorization.split(' ')[1]
+    : null)
+
+  if (!token) return res.status(401).json({ message: 'Login করো' })
+
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET)
+    next()
+  } catch {
+    res.status(401).json({ message: 'Token expired, আবার login করো' })
+  }
+}
+
+Frontend — axiosInstance.js এ credentials যোগ করো:
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: true,  // <-- cookie পাঠাতে এটা লাগবে
+})
+
+// আর Authorization header এর interceptor সরিয়ে ফেলো
+// cookie automatically যাবে
+
+
+Fix #5 — File Upload Validation
+Logo upload এ কোনো check নেই। কেউ চাইলে .exe বা বড় file দিতে পারবে।
+
+const multer = require('multer')
+const path   = require('path')
+
+const storage = multer.diskStorage({
+  destination: 'uploads/',
+  filename: (req, file, cb) => {
+    // Original filename এর বদলে random name দাও
+    cb(null, Date.now() + path.extname(file.originalname))
+  },
+})
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 },  // Max 2MB
+  fileFilter: (req, file, cb) => {
+    const allowed = /jpeg|jpg|png|webp/
+    const isValid = allowed.test(file.mimetype) && allowed.test(path.extname(file.originalname).toLowerCase())
+    if (isValid) cb(null, true)
+    else cb(new Error('শুধু JPG, PNG, WebP file upload করা যাবে'))
+  },
+})
+
+module.exports = upload
+
+Fix #6 — Fraud Score শুধু Backend এ
+এখন fraudEngine.js frontend এ আছে। কেউ চাইলে bypass করে সরাসরি API call করতে পারে। Backend এর fraudController.js ই একমাত্র source হওয়া উচিত।
+
+যা করতে হবে:
+frontend/src/utils/fraudEngine.js — শুধু display এর জন্য রাখো, কোনো business decision নেবে না
+controllers/orderController.js এ order create এর সময় backend fraudController.js call হচ্ছে — এটাই correct
+Frontend এ শুধু API থেকে আসা riskScore ও riskLevel দেখাও
+
+// pages/NewOrder.jsx — API response থেকে score দেখাও
+const response = await api.post('/orders', orderData)
+const { riskScore, riskLevel, riskReasons } = response.data
+
+// useFraudScore hook শুধু preview এর জন্য রাখো
+// Final decision সবসময় backend এর score দিয়ে হবে
+
+
+Final Checklist — Deploy এর আগে
+
+Done
+Task
+File
+[ ]
+helmet, rate-limit, express-validator install করো
+backend/package.json
+[ ]
+server.js এ helmet + rate limit যোগ করো
+backend/server.js
+[ ]
+CORS origin restrict করো (.env এ ALLOWED_ORIGIN)
+backend/server.js
+[ ]
+Order model এ shop field যোগ করো
+models/Order.js
+[ ]
+সব controller এ shop filter যোগ করো
+controllers/*.js
+[ ]
+Order create এ validation rules যোগ করো
+routes/orderRoutes.js
+[ ]
+JWT httpOnly cookie তে পাঠাও
+controllers/authController.js
+[ ]
+authMiddleware cookie থেকে token নেবে
+middleware/authMiddleware.js
+[ ]
+axiosInstance এ withCredentials: true
+frontend/src/api/axiosInstance.js
+[ ]
+File upload এ type ও size validation
+backend/upload.js
+[ ]
+.env এ কোনো secret GitHub এ push করোনি
+.gitignore
+[ ]
+MongoDB Atlas IP whitelist করো (শুধু Railway IP)
+Atlas Dashboard
+
+
+
+এই ৬টি fix করলে SmartShop production এর জন্য ready।
+
+Client এর কাছে deliver করার আগে checklist এর সব box tick করো।

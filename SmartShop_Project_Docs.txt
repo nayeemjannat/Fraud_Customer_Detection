@@ -1,0 +1,474 @@
+
+SmartShop
+Order Management & Fraud Detection System
+নতুন Online Seller দের জন্য সম্পূর্ণ Business Solution
+
+
+React + Vite
+Node + Express
+MongoDB
+JWT Auth
+
+
+১. Project File Structure
+নিচের folder structure টি দেখে প্রথমে সব folder ও file তৈরি করে নাও। প্রতিটি file এর পাশে লেখা আছে সেখানে কী থাকবে।
+
+Frontend (React + Vite)
+smartshop/
+├── frontend/
+│   ├── public/
+│   │   └── logo.png                  ← Shop logo রাখার জায়গা
+│   ├── src/
+│   │   ├── api/
+│   │   │   └── axiosInstance.js       ← সব API call এখান থেকে যাবে
+│   │   ├── components/
+│   │   │   ├── Navbar.jsx             ← Top navigation bar
+│   │   │   ├── Sidebar.jsx            ← বাম পাশের menu
+│   │   │   ├── OrderCard.jsx          ← একটি Order দেখানোর card
+│   │   │   ├── RiskBadge.jsx          ← Risk score badge (Green/Yellow/Red)
+│   │   │   ├── StatsCard.jsx          ← Dashboard এর number cards
+│   │   │   └── AlertBox.jsx           ← Suspicious order alert
+│   │   ├── pages/
+│   │   │   ├── Dashboard.jsx          ← মূল home page
+│   │   │   ├── Orders.jsx             ← সব orders list
+│   │   │   ├── OrderDetail.jsx        ← একটি order এর details
+│   │   │   ├── NewOrder.jsx           ← নতুন order add করার form
+│   │   │   ├── Customers.jsx          ← Customer list
+│   │   │   ├── CustomerProfile.jsx    ← একজন customer এর full history
+│   │   │   ├── Blacklist.jsx          ← Blacklisted customers
+│   │   │   ├── Payments.jsx           ← Payment tracking
+│   │   │   ├── Analytics.jsx          ← Charts ও reports
+│   │   │   ├── Settings.jsx           ← Shop branding settings
+│   │   │   └── Login.jsx              ← Login page
+│   │   ├── context/
+│   │   │   ├── AuthContext.jsx        ← Login state global রাখা
+│   │   │   └── ShopContext.jsx        ← Shop info global রাখা
+│   │   ├── hooks/
+│   │   │   └── useFraudScore.js       ← Risk score calculate করার hook
+│   │   ├── utils/
+│   │   │   └── fraudEngine.js         ← Fake order detection logic
+│   │   ├── App.jsx                    ← Main routing
+│   │   └── main.jsx                   ← Entry point
+│   ├── .env                           ← API URL রাখার জায়গা
+│   └── package.json
+
+Backend (Node.js + Express)
+├── backend/
+│   ├── config/
+│   │   └── db.js                      ← MongoDB connection
+│   ├── models/
+│   │   ├── Order.js                   ← Order এর database schema
+│   │   ├── Customer.js                ← Customer এর database schema
+│   │   ├── Payment.js                 ← Payment record schema
+│   │   └── Shop.js                    ← Shop/branding info schema
+│   ├── routes/
+│   │   ├── orderRoutes.js             ← /api/orders এর সব routes
+│   │   ├── customerRoutes.js          ← /api/customers routes
+│   │   ├── paymentRoutes.js           ← /api/payments routes
+│   │   ├── analyticsRoutes.js         ← /api/analytics routes
+│   │   └── authRoutes.js              ← /api/auth routes
+│   ├── controllers/
+│   │   ├── orderController.js         ← Order এর business logic
+│   │   ├── customerController.js      ← Customer logic
+│   │   ├── paymentController.js       ← Payment logic
+│   │   └── fraudController.js         ← Risk score calculation
+│   ├── middleware/
+│   │   ├── authMiddleware.js          ← JWT token check
+│   │   └── errorHandler.js            ← Error catch করা
+│   ├── .env                           ← DB URL, JWT secret
+│   ├── server.js                      ← Main entry point
+│   └── package.json
+│
+└── README.md                          ← GitHub এর জন্য project description
+
+
+২. Technology Stack
+
+Layer
+Technology
+Package/Tool
+কেন ব্যবহার করব
+Frontend
+React 18 + Vite
+npm create vite@latest
+Fast, GitHub এ popular, Recruiter চেনে
+Styling
+Tailwind CSS
+npm install tailwindcss
+সুন্দর UI, কম CSS লেখা
+Charts
+Recharts
+npm install recharts
+Dashboard এর graph বানাতে
+Routing
+React Router v6
+npm install react-router-dom
+Page navigation
+HTTP Client
+Axios
+npm install axios
+API call সহজ করে
+Backend
+Node.js + Express
+npm init + npm install express
+API server বানাতে
+Database
+MongoDB Atlas
+mongoose npm install
+Free cloud DB, সহজ
+Auth
+JWT
+npm install jsonwebtoken bcryptjs
+Login secure করতে
+Deploy (FE)
+Vercel
+vercel.com (free)
+Live link পাবে
+Deploy (BE)
+Railway
+railway.app (free)
+Backend host করতে
+
+
+৩. Features — বিস্তারিত Workflow
+প্রতিটি Feature এর নিচে দেওয়া আছে: কী করবে, কোন file এ কাজ করবে, এবং কোন technology ব্যবহার হবে।
+
+F1
+Order Management — অর্ডার যোগ করা ও track করা
+
+একজন seller নতুন order add করবে। Order এর status পরিবর্তন করবে। সব order list এ দেখবে এবং filter করবে।
+
+Status Flow:
+Pending  -->  Confirmed  -->  Shipped  -->  Delivered
+                                     \-->  Returned / Cancelled
+
+Step
+কাজ
+Technology
+কোন File-এ কী লিখবে
+1
+Order form UI বানাও
+React + Tailwind
+pages/NewOrder.jsx — input field গুলো (নাম, ফোন, address, product, qty, price)
+2
+Order list দেখাও
+React + Axios
+pages/Orders.jsx — API থেকে orders fetch করে table/card এ দেখাও
+3
+Status update button
+React state
+components/OrderCard.jsx — dropdown বা button দিয়ে status change করো
+4
+Order save করো DB তে
+Express + Mongoose
+models/Order.js — schema বানাও; controllers/orderController.js — POST route লেখো
+5
+Filter by status/date
+MongoDB query
+routes/orderRoutes.js — query params নিয়ে filter করো (?status=pending)
+
+F2
+Fake Order Detection — Risk Score System
+
+প্রতিটি নতুন order add হওয়ার সময় system automatically একটি Risk Score দেবে (0-100)। Score বেশি মানে সন্দেহজনক।
+
+Scoring Rules (Rule-based Engine):
+
+Condition
+Score +
+Risk Level
+Customer একবারও order করেনি (নতুন)
++25
+Medium
+আগে ২+ বার return করেছে
++35
+High
+Blacklist এ আছে
++100
+Blocked
+COD + ৳২০০০+ order + নতুন customer
++30
+High
+৩০ মিনিটে ৩+ order একই নম্বর থেকে
++40
+Very High
+আগে সফলভাবে ৩+ order নিয়েছে
+-20
+Lower Risk
+
+Step
+কাজ
+Technology
+কোন File-এ কী লিখবে
+1
+Scoring logic লেখো
+Vanilla JS
+utils/fraudEngine.js — calculateRiskScore(customer, order) function বানাও
+2
+React hook বানাও
+React Hook
+hooks/useFraudScore.js — order form থেকে real-time score দেখাবে
+3
+Backend score calculate
+Node.js
+controllers/fraudController.js — order save এর আগে score run করো
+4
+Risk badge দেখাও
+React + Tailwind
+components/RiskBadge.jsx — score অনুযায়ী Green/Yellow/Red badge
+5
+Alert পাঠাও
+React state
+components/AlertBox.jsx — score > 60 হলে warning দেখাও
+
+F3
+Customer Profile — প্রতিটি Customer এর Full History
+
+একজন customer কতবার order করেছে, কতবার নিয়েছে, কতবার return করেছে সব এক জায়গায়। Reliability score দেখাবে।
+
+Step
+কাজ
+Technology
+কোন File-এ কী লিখবে
+1
+Customer schema বানাও
+Mongoose
+models/Customer.js — name, phone, address, totalOrders, successOrders, returnCount, blacklisted
+2
+Auto-create customer
+Node.js
+controllers/orderController.js — নতুন order এ phone নম্বর দিয়ে customer খোঁজো, না পেলে তৈরি করো
+3
+Reliability score
+JS Math
+controllers/customerController.js — (successOrders/totalOrders)*100 = reliability %
+4
+Customer list page
+React + Axios
+pages/Customers.jsx — search by phone, sort by reliability
+5
+Customer detail page
+React Router
+pages/CustomerProfile.jsx — সব orders, score, blacklist button
+6
+Blacklist toggle
+Express PUT
+routes/customerRoutes.js — PUT /api/customers/:id/blacklist
+
+F4
+Payment Tracking — COD / bKash / Nagad হিসাব
+
+কোনো payment gateway নেই। Seller manually payment এর তথ্য লিখবে। COD হলে delivery এর পর mark করবে।
+
+Payment Status Flow:
+Unpaid  -->  Partially Paid  -->  Paid
+                         \-->  Refunded
+
+Step
+কাজ
+Technology
+কোন File-এ কী লিখবে
+1
+Payment schema বানাও
+Mongoose
+models/Payment.js — orderId, method(COD/bKash/Nagad), status, transactionId, amount, paidAt
+2
+Payment add form
+React
+pages/Payments.jsx — method select, transaction ID input, amount
+3
+COD mark as paid
+React button
+pages/OrderDetail.jsx — 'টাকা পেয়েছি' button চাপলে status = Paid
+4
+Unpaid order alert
+MongoDB query
+routes/analyticsRoutes.js — status=Unpaid এবং delivered orders খোঁজো
+5
+Monthly summary
+MongoDB aggregate
+controllers/analyticsController.js — মাস অনুযায়ী total paid/unpaid হিসাব
+
+F5
+Dashboard & Analytics — এক নজরে সব তথ্য
+
+Seller প্রথমে এই page দেখবে। আজকের order, revenue, suspicious order, top product সব এখানে।
+
+Step
+কাজ
+Technology
+কোন File-এ কী লিখবে
+1
+Stats cards বানাও
+React + Tailwind
+components/StatsCard.jsx — Today Orders, Revenue, Returns, Risk Orders
+2
+Analytics API
+Express + MongoDB
+controllers/analyticsController.js — aggregate query দিয়ে summary বের করো
+3
+Line chart
+Recharts
+pages/Analytics.jsx — <LineChart> দিয়ে last 7 days এর orders দেখাও
+4
+Bar chart
+Recharts
+pages/Analytics.jsx — <BarChart> দিয়ে top 5 products দেখাও
+5
+Savings counter
+React
+pages/Dashboard.jsx — Fraud score > 60 যে orders block হয়েছে তার মোট মূল্য দেখাও
+
+F6
+Branding / White-label — নিজের Shop এর নামে চলবে
+
+তুমি যখন কোনো seller কে এই system দেবে, সে তার নিজের shop এর নাম, logo, এবং color দিয়ে customize করতে পারবে। এটাই তোমার service এর মূল্য।
+
+Step
+কাজ
+Technology
+কোন File-এ কী লিখবে
+1
+Shop schema বানাও
+Mongoose
+models/Shop.js — shopName, logo URL, primaryColor, ownerPhone, plan(Basic/Standard/Premium)
+2
+Settings page
+React
+pages/Settings.jsx — shop name, color picker, logo upload
+3
+Logo upload
+Multer / Cloudinary
+backend: npm install multer — image upload করে URL save করো
+4
+Dynamic branding
+React Context
+context/ShopContext.jsx — shop info global রাখো, সব page এ use করো
+5
+Invoice তে shop name
+React print
+pages/OrderDetail.jsx — Print button → browser print দিয়ে invoice
+
+F7
+Authentication — Secure Login System
+
+প্রতিটি seller এর আলাদা account থাকবে। তার data শুধু সে দেখতে পাবে। JWT token দিয়ে secure করা হবে।
+
+Step
+কাজ
+Technology
+কোন File-এ কী লিখবে
+1
+Register & Login API
+Express + bcryptjs
+controllers/authController.js — password hash করো, JWT token দাও
+2
+Protected routes
+Express middleware
+middleware/authMiddleware.js — token verify করো, না থাকলে 401
+3
+Login page UI
+React
+pages/Login.jsx — email/password form, token localStorage এ রাখো
+4
+Auth context
+React Context
+context/AuthContext.jsx — login state global রাখো
+5
+Auto logout
+Axios interceptor
+api/axiosInstance.js — 401 পেলে logout করো, login এ redirect
+
+
+৪. Deployment Guide
+Project ready হলে এভাবে deploy করবে যেন live link পাওয়া যায়।
+
+Frontend — Vercel
+Step
+কাজ
+Technology
+কোন File-এ কী লিখবে
+1
+Build করো
+Vite
+npm run build — dist/ folder তৈরি হবে
+2
+Vercel connect
+Git + Vercel
+vercel.com → Import GitHub repo → Deploy
+3
+Env variable দাও
+Vercel Dashboard
+VITE_API_URL = তোমার Railway URL
+
+Backend — Railway
+Step
+কাজ
+Technology
+কোন File-এ কী লিখবে
+1
+Railway connect
+Git + Railway
+railway.app → New Project → GitHub repo select
+2
+Env variables দাও
+Railway Dashboard
+MONGO_URI, JWT_SECRET, PORT
+3
+Live URL নাও
+Railway
+Settings → Domains → এটাই তোমার API URL
+
+৫. GitHub Strong করার Checklist
+
+এই কাজগুলো করলে GitHub profile recruiter দের কাছে আকর্ষণীয় হবে:
+
+README.md — Project এর description, screenshot, live link, কীভাবে run করবে সব লেখো
+Live Demo link — Vercel URL README তে দাও
+Screenshots — Dashboard, Fraud Detection, Customer Profile এর screenshot README তে
+CONTRIBUTING.md — এটা থাকলে open-source feel আসে, star বাড়ে
+.env.example — actual secret ছাড়া example file রাখো
+Meaningful commit messages — 'feat: add fraud scoring engine' এভাবে
+Topics/Tags — repository তে: bangladesh, ecommerce, react, nodejs, fraud-detection
+
+৬. Service Pricing Model
+তুমি এই system টি নতুন online seller দের কাছে service হিসেবে বেচতে পারবে:
+
+Plan
+Basic
+Standard
+Premium
+মূল্য
+৳৫০০/মাস
+৳১০০০/মাস
+৳২০০০/মাস
+Order Management
+✓
+✓
+✓
+Fake Detection
+Basic
+Advanced
+Advanced
+Customer Profile
+✗
+✓
+✓
+Branding/Logo
+✗
+✓
+✓
+Analytics
+✗
+✓
+✓
+Support
+✗
+✗
+✓
+
+
+
+তুমি শুধু একটা project বানাচ্ছ না — একটা Business তৈরি করছ।
+
+Client → GitHub → Job → Service — সব এক project এ।
