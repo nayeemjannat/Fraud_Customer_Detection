@@ -25,6 +25,7 @@ export default function Navbar({ toggleSidebar }) {
         {user?.name && (
           <p className="text-xs text-gray-400 font-medium hidden sm:block">স্বাগতম, {user.name}</p>
         )}
+        </div>
       </div>
 
       {/* Right side: Status + Logout */}

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ShopProvider } from './context/ShopContext'
@@ -22,7 +23,7 @@ import Navbar from './components/Navbar'
 // ─── Protected Route wrapper ───────────────────────────────
 function ProtectedLayout({ children }) {
   const { user } = useAuth()
-  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   if (!user) {
     return <Navigate to="/login" />
   }
