@@ -21,7 +21,7 @@ function hexToRgb(hex) {
   return { r, g, b }
 }
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, setIsOpen }) {
   const { shop } = useShop()
   const { logout } = useAuth()
   const primaryColor = shop?.primaryColor || '#1A56DB'
@@ -34,7 +34,20 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-56 bg-white border-r border-gray-100 flex flex-col no-print shadow-sm">
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/30 md:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      <aside 
+        className={`fixed md:static inset-y-0 left-0 z-50 w-56 bg-white border-r border-gray-100 flex flex-col no-print shadow-sm transform transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
       {/* Logo / Brand Area */}
       <div className="h-16 flex items-center px-5 border-b border-gray-100">
         <div className="flex items-center gap-2.5 overflow-hidden">
@@ -66,6 +79,7 @@ export default function Sidebar() {
             key={path}
             to={path}
             end={path === '/'}
+            onClick={() => setIsOpen(false)}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm transition-all duration-150 font-medium ${
                 isActive ? 'font-semibold' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -95,5 +109,6 @@ export default function Sidebar() {
         SmartShop v1.0.0
       </div>
     </aside>
+    </>
   )
 }

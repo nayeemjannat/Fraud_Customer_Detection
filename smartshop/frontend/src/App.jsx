@@ -22,15 +22,16 @@ import Navbar from './components/Navbar'
 // ─── Protected Route wrapper ───────────────────────────────
 function ProtectedLayout({ children }) {
   const { user } = useAuth()
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false)
   if (!user) {
     return <Navigate to="/login" />
   }
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+    <div className="flex h-screen bg-gray-50 overflow-hidden relative">
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <Navbar toggleSidebar={() => setIsSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
       </div>
     </div>
   )
