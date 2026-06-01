@@ -104,9 +104,20 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         </button>
       </div>
 
-      {/* Footer brand info */}
-      <div className="px-4 pb-3 text-center text-[10px] text-gray-300 font-medium">
-        SmartShop v1.0.0
+      {/* Developer Credit */}
+      <div className="px-4 pb-4 w-full">
+        <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100/50 shadow-sm relative overflow-hidden group transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+          {/* Animated Shine Effect */}
+          <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/60 to-transparent group-hover:animate-shimmer pointer-events-none"></div>
+          
+          <span className="text-[10px] font-bold tracking-wider text-indigo-500 uppercase mb-0.5">
+            Crafted by Nayeem
+          </span>
+          <span className="text-[9px] font-medium text-slate-500 italic flex items-center gap-1">
+            From concept to code
+            <span className="animate-pulse text-indigo-400">✨</span>
+          </span>
+        </div>
       </div>
     </aside>
     </>
